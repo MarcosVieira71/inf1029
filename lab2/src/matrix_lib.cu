@@ -104,16 +104,20 @@ __global__ void matrix_mult_1d(float *mA, float *mB, float *mC, int m, int n, in
 
         float sum = 0.0f;
 
-        float* m1_ptr = mA + row * n;
-        float* m2_ptr = mB + col;
+        float* m1_ptr = mA + row * n;   // Aponta para o início da linha 'row' de A
+        float* m2_ptr = mB + col;       // Aponta para o início da coluna 'col' de B (coluna acessada com stride)
 
         for (int k = 0; k < n; k++) {
-            sum += *(m1_ptr + k) * *(m2_ptr + k * p);
+            float* a_val = m1_ptr + k;         // A[row][k]
+            float* b_val = m2_ptr + k * p;     // B[k][col]
+            sum += (*a_val) * (*b_val);
         }
 
-        mC[i] = sum;
+        float* c_ptr = mC + i;  // C[row][col] == C[i]
+        *c_ptr = sum;
     }
 }
+
 
 /**
  * @brief Função host que realiza a multiplicação de duas matrizes usando CUDA.
