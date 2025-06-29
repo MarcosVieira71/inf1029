@@ -1,8 +1,8 @@
 mkdir -p ../build && gcc  -Wall -o ../build/gera_matrix ../src/gera_matrix.c
 
-linhasM1="3200"
-colunasM1="4000"
-colunasM2="3200"
+linhasM1="40000"
+colunasM1="40000"
+colunasM2="40000"
 
 if [ $# -ge 1 ]; then
     linhasM1=$1

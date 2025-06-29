@@ -48,8 +48,6 @@ executaveisMatrizesMatrizes=(
 )
 
 executaveisEscalares=(
-    "../build/matrix_lib_test_scalar_colunas"
-    "../build/matrix_lib_test_scalar_linhas"
     "../build/matrix_lib_test_scalar_ptr"
     "../build/matrix_lib_test_scalar_threads"
 )
@@ -58,7 +56,7 @@ executaveisEscalares=(
 #EXECUTA PARA MULTIPLICACAO DE MATRIZES
 for exec in "${executaveisMatrizesMatrizes[@]}"; do
     for dimensao in "${dimensoesMm[@]}"; do
-        for i in $(seq 1 10); do
+        for i in $(seq 1 3); do
             set -- $dimensao
             linhas_m1=$1
             colunas_m1=$2
@@ -89,7 +87,7 @@ done
 # EXECUTA PARA ESCALARES
 for exec in "${executaveisEscalares[@]}"; do
     for dimensao in "${dimensoesEscalar[@]}"; do
-        for i in $(seq 1 10); do
+        for i in $(seq 1 3); do
             set -- $dimensao
             linhas_m1=$1
             colunas_m1=$2

@@ -2,66 +2,69 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 
-
 __global__ void scalar_mult_kernel(float scalar, float *input, float *output, int size) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < size) {
-        float *in_ptr = input + idx;
-        float *out_ptr = output + idx;
+    int global_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+
+    float *in_ptr = input + global_idx;
+    float *out_ptr = output + global_idx;
+
+    for (int idx = global_idx; idx < size; idx += stride) {
         *out_ptr = scalar * (*in_ptr);
+        in_ptr += stride;
+        out_ptr += stride;
     }
 }
 
+
 int scalar_matrix_mult(float scalar_value, matrix *m, matrix *r) {
-	if (!m || !r || !m->values || !r->values || m->rows != r->rows || m->cols != r->cols) {
-		return -1;
-	}
-
-	int size = m->rows * m->cols;
-	float *deviceInput = NULL, *deviceOutput = NULL;
-
-	cudaError_t err;
-	err = cudaMalloc((void**)&deviceInput, size * sizeof(float));
-	if (err != cudaSuccess){
+    if (!m || !r || !m->values || !r->values || m->rows != r->rows || m->cols != r->cols) {
         return -1;
     }
-	err = cudaMalloc((void**)&deviceOutput, size * sizeof(float));
-	if (err != cudaSuccess) {
-		cudaFree(deviceInput);
-		return -1;
-	}
 
-	err = cudaMemcpy(deviceInput, m->values, size * sizeof(float), cudaMemcpyHostToDevice);
-	if (err != cudaSuccess) {
-		cudaFree(deviceInput); cudaFree(deviceOutput);
-		return -1;
-	}
+    int total_size = m->rows * m->cols;
+    float *deviceInput = NULL, *deviceOutput = NULL;
 
-    int max_blocks = (size + threadsPerBlock - 1) / threadsPerBlock;
+    cudaError_t err;
+    err = cudaMalloc((void**)&deviceInput, total_size * sizeof(float));
+    if (err != cudaSuccess) {
+        return -1;
+    }
+    err = cudaMalloc((void**)&deviceOutput, total_size * sizeof(float));
+    if (err != cudaSuccess) {
+        cudaFree(deviceInput);
+        return -1;
+    }
 
-    int blocks = (blocksPerGrid >= max_blocks) ? blocksPerGrid : max_blocks;
+    err = cudaMemcpy(deviceInput, m->values, total_size * sizeof(float), cudaMemcpyHostToDevice);
+    if (err != cudaSuccess) {
+        cudaFree(deviceInput);
+        cudaFree(deviceOutput);
+        return -1;
+    }
 
-    //printf("Kernel config: %d blocks x %d threads = %d threads, size = %d\n", blocks, threadsPerBlock, blocks * threadsPerBlock, size);
-
-	scalar_mult_kernel<<<blocks, threadsPerBlock>>>(scalar_value, deviceInput, deviceOutput, size);
+    scalar_mult_kernel<<<blocksPerGrid, threadsPerBlock>>>(scalar_value, deviceInput, deviceOutput, total_size);
     cudaDeviceSynchronize();
-	err = cudaGetLastError();
-	if (err != cudaSuccess) {
+
+
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
         fprintf(stderr, "Erro no kernel: %s\n", cudaGetErrorString(err));
-		cudaFree(deviceInput); cudaFree(deviceOutput);
-		return -1;
-	}
+        cudaFree(deviceInput);
+        cudaFree(deviceOutput);
+        return -1;
+    }
+    err = cudaMemcpy(r->values, deviceOutput, total_size * sizeof(float), cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess) {
+        cudaFree(deviceInput);
+        cudaFree(deviceOutput);
+        return -1;
+    }
 
-	err = cudaMemcpy(r->values, deviceOutput, size * sizeof(float), cudaMemcpyDeviceToHost);
-	if (err != cudaSuccess) {
-		cudaFree(deviceInput); cudaFree(deviceOutput);
-		return -1;
-	}
+    cudaFree(deviceInput);
+    cudaFree(deviceOutput);
 
-	cudaFree(deviceInput);
-	cudaFree(deviceOutput);
-
-	return 0;
+    return 0;
 }
 
 __global__ void matrix_mult_1d(float *mA, float *mB, float *mC, int m, int n, int p) {
