@@ -1,3 +1,5 @@
+//** Alunos: Julia Gomes Zibordi - 2320934 | Marcos Paulo Marinho Vieira - 2320466 *//
+
 #include "matrix_lib.h"
 #include <cuda_runtime.h>
 #include <stdio.h>
