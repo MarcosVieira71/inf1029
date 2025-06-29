@@ -22,5 +22,5 @@ fi
 
 echo $linhasM1 $colunasM1 $colunasM2
 
-# gcc -Wall -std=c11 -mfma -o ../build/matrix_lib_test ../src/matrix_lib_test.c ../src/matrix_lib.c && 
+gcc -Wall -std=c11 -mfma -o ../build/matrix_lib_test ../src/matrix_lib_test.c ../src/matrix_lib.c && 
 ../build/matrix_test -s 5.0 -r $linhasM1 -c $colunasM1 -C $colunasM2 -m ../arquivos/matrix1.dat -M ../arquivos/matrix2.dat -o ../arquivos/result1.dat -O ../arquivos/result2.dat
