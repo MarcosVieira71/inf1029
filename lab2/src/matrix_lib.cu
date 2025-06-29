@@ -32,12 +32,19 @@ __global__ void scalar_mult_kernel(float scalar, float *input, float *output, in
  * @param r Ponteiro para a matriz de saída (resultado).
  * @return 0 em caso de sucesso, ou código de erro negativo.
  *
- * @retval -1 Erro de validação ou alocação.
+ * @retval -1 Ponteiros nulos ou inválidos.
+ * @retval -2 Dimensões incompatíveis para multiplicação.
+ * @retval -3 Erro de alocação na GPU.
+ * @retval -4 Erro ao copiar dados para ou da GPU.
+ * @retval -5 Erro durante a execução do kernel.
  */
 int scalar_matrix_mult(float scalar_value, matrix *m, matrix *r) {
-    if (!m || !r || !m->values || !r->values || m->rows != r->rows || m->cols != r->cols) {
+    if (!m || !r || !m->values || !r->values) {
         return -1;
     }
+
+    if ( m->rows != r->rows || m->cols != r->cols )
+        return -2;
 
     int total_size = m->rows * m->cols;
     float *deviceInput = NULL, *deviceOutput = NULL;
@@ -45,19 +52,19 @@ int scalar_matrix_mult(float scalar_value, matrix *m, matrix *r) {
     cudaError_t err;
     err = cudaMalloc((void**)&deviceInput, total_size * sizeof(float));
     if (err != cudaSuccess) {
-        return -1;
+        return -3;
     }
     err = cudaMalloc((void**)&deviceOutput, total_size * sizeof(float));
     if (err != cudaSuccess) {
         cudaFree(deviceInput);
-        return -1;
+        return -3;
     }
 
     err = cudaMemcpy(deviceInput, m->values, total_size * sizeof(float), cudaMemcpyHostToDevice);
     if (err != cudaSuccess) {
         cudaFree(deviceInput);
         cudaFree(deviceOutput);
-        return -1;
+        return -4;
     }
 
     scalar_mult_kernel<<<blocksPerGrid, threadsPerBlock>>>(scalar_value, deviceInput, deviceOutput, total_size);
@@ -68,14 +75,14 @@ int scalar_matrix_mult(float scalar_value, matrix *m, matrix *r) {
         fprintf(stderr, "Erro no kernel: %s\n", cudaGetErrorString(err));
         cudaFree(deviceInput);
         cudaFree(deviceOutput);
-        return -1;
+        return -5;
     }
 
     err = cudaMemcpy(r->values, deviceOutput, total_size * sizeof(float), cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
         cudaFree(deviceInput);
         cudaFree(deviceOutput);
-        return -1;
+        return -4;
     }
 
     cudaFree(deviceInput);
